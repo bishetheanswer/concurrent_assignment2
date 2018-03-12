@@ -75,8 +75,8 @@ public class Garden extends Applet {
         
         counter = new Counter(counterD);
        
-        turnstile1= new Turnstile(turn1D,counter);
-        turnstile2= new Turnstile(turn2D,counter);
+        turnstile1= new Turnstile(turn1D,counter,0);//ID
+        turnstile2= new Turnstile(turn2D,counter,1);
         turnstile1.start();
         turnstile2.start();
     }
@@ -87,17 +87,31 @@ class Counter {
 
     int value=0;
     NumberCanvas display;
+    boolean[] wantsCS={false,false};//
+    volatile int turn=0;//
 
     Counter(NumberCanvas n) {
         display=n;
         display.setvalue(value);
     }
 
-    void increment() {
+    void increment(int ID) {//
+       //pre-protocol
+        wantsCS[ID]=true;
+        while (wantsCS[1-ID]){
+            if(turn==1-ID){
+                wantsCS[ID]=false;
+                while(turn==1-ID);
+                wantsCS[ID]=true;
+            }
+        }
         int temp = value;   //read[v]
         CC.ForceCC();
         value=temp+1;       //write[v+1]
         display.setvalue(value);
+        //post-protocol
+        turn=1-ID;
+        wantsCS[ID]=false;
     }
 }
 
@@ -107,9 +121,10 @@ class Counter {
 class Turnstile extends Thread {
   NumberCanvas display;
   Counter people;
+  int ID=0;//
 
-  Turnstile(NumberCanvas n,Counter c)
-    { display = n; people = c; }
+  Turnstile(NumberCanvas n,Counter c, int ID)
+    { display = n; people = c; this.ID=ID;}//
 
   public void run() {
     try{
@@ -117,7 +132,7 @@ class Turnstile extends Thread {
       for (int i=1;i<=Garden.MAX;i++){
         Thread.sleep(500); //0.5 second
         display.setvalue(i);
-        people.increment();
+        people.increment(ID);//
       }
     } catch (InterruptedException e) {}
   }
