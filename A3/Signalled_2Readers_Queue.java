@@ -1,6 +1,8 @@
 package concurrent_assignment2.A3;
 
 import concurrent_assignment2.A_intro.Queue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Use the synchronized keyword and signals.
@@ -14,20 +16,39 @@ import concurrent_assignment2.A_intro.Queue;
  */
  
 class Signalled_2Readers_Queue implements Queue{
-	int n=0;
-	
+	volatile int n=0;
+	volatile int turn=-1;
 	
 	@Override
-	public void read(int ID) {
+	synchronized public void read(int ID) {
 		// TODO Auto-generated method stub
-		
+		while(turn!=ID){
+                    try {
+                        wait();
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Signalled_2Readers_Queue.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+                System.out.println(n+" printed by reader:"+ID);
+                turn--;
+                notifyAll();
 	}
 	
 
 	@Override
-	public void write(int x) {
+	synchronized public void write(int x) {
 		// TODO Auto-generated method stub
-		
+		while(turn!=-1){
+                    try {
+                        wait();
+                    } catch (InterruptedException ex) {
+                        Logger.getLogger(Signalled_2Readers_Queue.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+                n++;
+                System.out.println(n);
+                turn=1;
+                notifyAll();
 	}
 	
 	@Override
